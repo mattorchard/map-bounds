@@ -1,8 +1,10 @@
 const wgs84 = require("wgs84-util");
 
 const BEARINGS = {
-  NORTH_EAST: 45,
-  SOUTH_WEST: 180 + 45,
+  NORTH: 0,
+  EAST: 90,
+  SOUTH: 180,
+  WEST: 270,
 };
 
 const clampLatitude = (latitude, isPositive) => {
@@ -21,23 +23,17 @@ const clampLongitude = (longitude, isPositive) => {
  * @param {"clamp" | "throw" | "ignore"} wrapAround
  */
 module.exports.getBounds = (center, distance, wrapAround = "clamp") => {
-  const distanceToCorner = distance * Math.sqrt(2);
+  const [, maxLatitude] = wgs84.destination(center, BEARINGS.NORTH, distance)
+    .point.coordinates;
 
-  // South West coordinates are lowest in lat and lng
-  const southWestCorner = wgs84.destination(
-    center,
-    BEARINGS.SOUTH_WEST,
-    distanceToCorner
-  );
-  const [minLongitude, minLatitude] = southWestCorner.point.coordinates;
+  const [maxLongitude] = wgs84.destination(center, BEARINGS.EAST, distance)
+    .point.coordinates;
 
-  // North East coordinates are highest in lat and lng
-  const northEastCorner = wgs84.destination(
-    center,
-    BEARINGS.NORTH_EAST,
-    distanceToCorner
-  );
-  const [maxLongitude, maxLatitude] = northEastCorner.point.coordinates;
+  const [, minLatitude] = wgs84.destination(center, BEARINGS.SOUTH, distance)
+    .point.coordinates;
+
+  const [minLongitude] = wgs84.destination(center, BEARINGS.WEST, distance)
+    .point.coordinates;
 
   // If either coordinate is lower then it's pair then we've passed a world border
   const hasWrapped = minLongitude > maxLongitude || minLatitude > maxLatitude;
